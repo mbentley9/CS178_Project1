@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Check point</title>
+  </head>
+  <body>
+    <h1>
+      Top Counties
+    </h1>
+    <ul>
+      {%for country in results %}
+        <li>{{country.Name}}-{{country.Population}}</li>
+      {%endfor%}
+    </ul>
+  </body>
+</html>
