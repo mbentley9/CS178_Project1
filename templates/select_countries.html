@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Countries You've Visited</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-pzjw8f+ua7Kw1TIq0p3kB2MFPz03g7a7LEaJp8JffO0z17meqz6J8G92R6vFyx7d" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title text-center text-primary">Select the Countries You've Visited</h1>
+                <form action="/checkin" method="POST">
+                    <input type="hidden" name="username" value="{{ username }}">
+
+                    <!-- Loop through the countries and create a checkbox for each one -->
+                    {% for country in results %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="visited" value="{{ country.Name }}" id="visited-{{ loop.index }}">
+                            <label class="form-check-label" for="visited-{{ loop.index }}">
+                                {{ country.Name }}
+                            </label>
+                        </div>
+                    {% endfor %}
+
+                    <div class="form-group text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zyE2p4dKkHohJc4h0sRuI5DA8j+dy3GeC5TcQKkG" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-c5jgl00ODauDdj4WUnsdwcp+tbGqvR4e6p38O4tcmYos16tZm/mbB1ICcOSfz3k6" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-pzjw8f+ua7Kw1TIq0p3kB2MFPz03g7a7LEaJp8JffO0z17meqz6J8G92R6vFyx7d" crossorigin="anonymous"></script>
+</body>
+</html>
