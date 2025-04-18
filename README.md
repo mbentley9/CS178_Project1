@@ -39,6 +39,9 @@ database = 'world'
 ```
 python3 flaskapp.py
 ```
+8. Open up the http: that is provided in the terminal to see the website!
+
+
 
 
 
