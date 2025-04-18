@@ -1,4 +1,6 @@
 *.pem 
 creds.py
+test_dynamo.py
 nohup.out
 *.sql 
+

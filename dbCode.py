@@ -6,9 +6,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 
-# ---------------- MySQL (RDS) Setup ----------------
 
-# RDS Connection
+
+# RDS Connection 
 def get_conn():
     return pymysql.connect(
         host=creds.host,
@@ -28,11 +28,11 @@ def execute_query(query, args=None):
     finally:
         conn.close()
 
-# Fetch the list of countries from the 'country' table
+# gets the list of countries from the database 
 def get_list_of_dictionaries():
     query = "SELECT Name, Population FROM country;"
     return execute_query(query)
-
+#my JOIN function 
 def get_countries_and_languages():
     query = """
     SELECT country.Name, country.Population, countrylanguage.Language
@@ -44,20 +44,17 @@ def get_countries_and_languages():
     return results
 
 
-# ---------------- DynamoDB Setup ----------------
 
 # DynamoDB Setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 login_table = dynamodb.Table('Login')
 
-# Store login credentials in DynamoDB
 def store_login(username, password):
     try:
-        # Log the data being sent to DynamoDB
         item = {
             "Username": username,
             "Password": password,
-            "visited": []  # Empty list for visited countries
+            "visited": []  
         }
         logger.debug(f"Attempting to store the following item: {item}")
         
@@ -71,7 +68,7 @@ def store_login(username, password):
         logger.error(f"Error storing login for {username}: {e}")
         print(f"Error storing login for {username}: {e}")
 
-# Add a visited country to the user's record
+
 def add_visited_country(username, country):
     try:
         user = login_table.get_item(Key={'Username': username}).get('Item')
@@ -87,7 +84,7 @@ def add_visited_country(username, country):
     except Exception as e:
         print("Error adding visited country:", e)
 
-# Get the list of countries a user has visited
+
 def get_visited_countries(username):
     try:
         response = login_table.get_item(Key={'Username': username})
@@ -97,40 +94,34 @@ def get_visited_countries(username):
         print("Error fetching visited countries:", e)
         return []
 
-# ---------------- User Authentication ----------------
 
-# Authenticate user by checking username and password in DynamoDB
+# Authenticate user by checking to make sure the username and password are in DynamoDB
 def authenticate_user(username, password):
     try:
-        # Convert username to lowercase for case-insensitive matching
+        
         username = username.strip().lower()
-        
-        print(f"Attempting to authenticate user: {username}")  # Debugging line
-        
-        # Attempt to retrieve the user record from DynamoDB
+    
         response = login_table.get_item(Key={'Username': username})
-        print(f"DynamoDB response: {response}")  # Debugging line
         
         item = response.get('Item')
         
         if item:
-            print(f"User found: {item}")  # Debugging line
+            print(f"User found: {item}")  
         else:
-            print("User not found.")  # Debugging line
+            print("User not found.")  
         
-        # If user is found and passwords match, return the user item
+        
         if item and item['Password'] == password:
             return item
         else:
-            print("Password mismatch.")  # Debugging line
-            return None  # Return None if username/password don't match
+            print("Password mismatch.")  
+            return None 
     except Exception as e:
         print("Error during authentication:", e)
         return None
 
-# ---------------- User CRUD Operations ----------------
-
-# Insert a new user into DynamoDB (with visited countries)
+#CRUD
+# Insert a new user into DynamoDB 
 def insert_user_to_dynamodb(username, password, visited=None):
     visited = visited or []
     login_table.put_item(
@@ -144,40 +135,36 @@ def insert_user_to_dynamodb(username, password, visited=None):
 # Delete a user from DynamoDB
 def delete_user_from_dynamodb(username):
     try:
-        print(f"Attempting to delete user: {username}")  # Debugging line
-        
-        # Delete user from DynamoDB
+        print(f"Attempting to delete user: {username}") 
         response = login_table.delete_item(
             Key={'Username': username}
         )
-        
-        print(f"Delete response: {response}")  # Debugging line
-        
+            
         if response.get('ConsumedCapacity'):
-            print(f"User {username} deleted successfully.")  # Debugging line
+            print(f"User {username} deleted successfully.")  
         else:
-            print(f"Failed to delete user {username}.")  # Debugging line
+            print(f"Failed to delete user {username}.")  
         
     except Exception as e:
         print(f"Error deleting user {username}: {e}")
 
-# Update user password in DynamoDB
+# Update user password in DynamoDB #I had a lot of troubles getting this one to work. I had the help of chatgpt to debug and figure out to allow the user to change their password 
 def update_user_password(username, new_password):
     try:
-        print(f"Attempting to update password for user: {username}")  # Debugging line
+        print(f"Attempting to update password for user: {username}")  
         
-        # Update user password in DynamoDB
+
         response = login_table.update_item(
             Key={'Username': username},
             UpdateExpression='SET Password = :val1',
             ExpressionAttributeValues={':val1': new_password},
-            ReturnValues="UPDATED_NEW"  # To return the updated values
+            ReturnValues="UPDATED_NEW"  
         )
         
-        print(f"Password update response: {response}")  # Debugging line
+    
         
         if response.get('Attributes'):
-            print(f"Password updated successfully for user: {username}")  # Debugging line
+            print(f"Password updated successfully for user: {username}") 
         else:
             print("Failed to update password.")  # Debugging line
         

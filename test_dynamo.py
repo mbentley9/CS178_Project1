@@ -1,14 +1,12 @@
 import boto3
-
-
-print("🚀 Script started")
+# used Chat to help me figure out why my code was not connecting to my Login table in dynamodb
 
 try:
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     table = dynamodb.Table('login')
-    print(f"✅ Connected to table: {table.name}")
+    print(f" Connected to table: {table.name}")
 except Exception as e:
-    print("❌ Error creating DynamoDB resource or table:", e)
+    print(" Error creating DynamoDB resource or table:", e)
 
 # Change region if needed
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -18,10 +16,10 @@ table = dynamodb.Table('Login')
 def test_read():
     try:
         response = table.scan()
-        print("✅ Successfully scanned table")
+        print(" Successfully scanned table")
         for item in response['Items']:
             print(item)
     except Exception as e:
-        print("❌ Error during scan:", e)
+        print(" Error during scan:", e)
 
 test_read()
