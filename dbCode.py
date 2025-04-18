@@ -1,14 +1,8 @@
 import pymysql
 import creds
 import boto3
-import logging
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger()
-
-
-
-# RDS Connection 
+# MySQL (RDS) Connection Setup
 def get_conn():
     return pymysql.connect(
         host=creds.host,
@@ -18,6 +12,7 @@ def get_conn():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+# Function to execute MySQL queries
 def execute_query(query, args=None):
     conn = get_conn()
     try:
@@ -28,11 +23,12 @@ def execute_query(query, args=None):
     finally:
         conn.close()
 
-# gets the list of countries from the database 
+# Function to get a list of countries from MySQL database
 def get_list_of_dictionaries():
     query = "SELECT Name, Population FROM country;"
     return execute_query(query)
-#my JOIN function 
+
+# Function to join country and language data from MySQL
 def get_countries_and_languages():
     query = """
     SELECT country.Name, country.Population, countrylanguage.Language
@@ -43,38 +39,37 @@ def get_countries_and_languages():
     results = execute_query(query)
     return results
 
+# DynamoDB (AWS) Connection Setup
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')  # Ensure your region is correct
+login_table = dynamodb.Table('Login')  # Your DynamoDB table name
 
-
-# DynamoDB Setup
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-login_table = dynamodb.Table('Login')
-
+# Store login information in DynamoDB
 def store_login(username, password):
     try:
+        username = username.strip().lower()  # Normalize username to lowercase
         item = {
             "Username": username,
             "Password": password,
-            "visited": []  
+            "visited": []  # Initialize visited countries as an empty list
         }
-        logger.debug(f"Attempting to store the following item: {item}")
         
+        # Attempt to store the item in DynamoDB
         response = login_table.put_item(Item=item)
-        
-        # Log the response from DynamoDB
-        logger.debug(f"DynamoDB response: {response}")
-        
         print(f"Stored login for {username}")
     except Exception as e:
-        logger.error(f"Error storing login for {username}: {e}")
         print(f"Error storing login for {username}: {e}")
 
-
+# Add visited country to DynamoDB
 def add_visited_country(username, country):
     try:
+        # Retrieve the user from DynamoDB
         user = login_table.get_item(Key={'Username': username}).get('Item')
         visited = user.get('visited', []) if user else []
+
         if country not in visited:
             visited.append(country)
+
+            # Update the visited countries list
             login_table.update_item(
                 Key={'Username': username},
                 UpdateExpression='SET visited = :val1',
@@ -84,9 +79,10 @@ def add_visited_country(username, country):
     except Exception as e:
         print("Error adding visited country:", e)
 
-
+# Get the list of visited countries from DynamoDB
 def get_visited_countries(username):
     try:
+        # Retrieve the user data
         response = login_table.get_item(Key={'Username': username})
         item = response.get('Item')
         return item.get('visited', []) if item else []
@@ -94,79 +90,65 @@ def get_visited_countries(username):
         print("Error fetching visited countries:", e)
         return []
 
-
-# Authenticate user by checking to make sure the username and password are in DynamoDB
+# Authenticate the user by checking username and password in DynamoDB
 def authenticate_user(username, password):
     try:
+        username = username.strip().lower()  # Normalize username to lowercase
         
-        username = username.strip().lower()
-    
+        # Retrieve the user from DynamoDB
         response = login_table.get_item(Key={'Username': username})
-        
         item = response.get('Item')
-        
-        if item:
-            print(f"User found: {item}")  
-        else:
-            print("User not found.")  
-        
-        
+
         if item and item['Password'] == password:
             return item
         else:
-            print("Password mismatch.")  
-            return None 
+            print("Password mismatch or user not found.")
+            return None
     except Exception as e:
-        print("Error during authentication:", e)
+        print(f"Error during authentication for {username}: {e}")
         return None
 
-#CRUD
-# Insert a new user into DynamoDB 
+# Insert a new user into DynamoDB
 def insert_user_to_dynamodb(username, password, visited=None):
     visited = visited or []
-    login_table.put_item(
-        Item={
-            'Username': username,
-            'Password': password,
-            'visited': visited
-        }
-    )
+    try:
+        login_table.put_item(
+            Item={
+                'Username': username.strip().lower(),  # Ensure username is lowercase
+                'Password': password,
+                'visited': visited
+            }
+        )
+        print(f"Inserted new user {username} into DynamoDB.")
+    except Exception as e:
+        print(f"Error inserting user {username} into DynamoDB: {e}")
 
 # Delete a user from DynamoDB
 def delete_user_from_dynamodb(username):
     try:
-        print(f"Attempting to delete user: {username}") 
-        response = login_table.delete_item(
-            Key={'Username': username}
-        )
-            
-        if response.get('ConsumedCapacity'):
-            print(f"User {username} deleted successfully.")  
-        else:
-            print(f"Failed to delete user {username}.")  
+        response = login_table.delete_item(Key={'Username': username})
         
+        if response.get('ConsumedCapacity'):
+            print(f"User {username} deleted successfully.")
+        else:
+            print(f"Failed to delete user {username}.")
     except Exception as e:
         print(f"Error deleting user {username}: {e}")
 
-# Update user password in DynamoDB #I had a lot of troubles getting this one to work. I had the help of chatgpt to debug and figure out to allow the user to change their password 
+# Update user password in DynamoDB
 def update_user_password(username, new_password):
     try:
-        print(f"Attempting to update password for user: {username}")  
-        
-
+        # Update password
         response = login_table.update_item(
             Key={'Username': username},
             UpdateExpression='SET Password = :val1',
             ExpressionAttributeValues={':val1': new_password},
-            ReturnValues="UPDATED_NEW"  
+            ReturnValues="UPDATED_NEW"
         )
         
-    
-        
         if response.get('Attributes'):
-            print(f"Password updated successfully for user: {username}") 
+            print(f"Password updated successfully for user: {username}")
         else:
-            print("Failed to update password.")  # Debugging line
-        
+            print("Failed to update password.")
     except Exception as e:
         print(f"Error updating password for {username}: {e}")
